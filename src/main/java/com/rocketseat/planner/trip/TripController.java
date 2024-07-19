@@ -1,14 +1,20 @@
 package com.rocketseat.planner.trip;
 
+import com.rocketseat.planner.activity.ActivityData;
+import com.rocketseat.planner.activity.ActivityRequestPayload;
+import com.rocketseat.planner.activity.ActivityResponse;
+import com.rocketseat.planner.activity.ActivityService;
+import com.rocketseat.planner.link.LinkData;
+import com.rocketseat.planner.link.LinkRequestPayload;
+import com.rocketseat.planner.link.LinkResponse;
+import com.rocketseat.planner.link.LinkService;
 import com.rocketseat.planner.participant.*;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,9 +26,14 @@ public class TripController {
     // Annotation do Spring para a Injeção de Dependência
     @Autowired
     private ParticipantService participantService;
-
+    @Autowired
+    private ActivityService activityService;
+    @Autowired
+    private LinkService linkService;
     @Autowired
     private TripRepository repository;
+
+    // TRIPS
 
     //Mostra que esse EndPoint é alcançado pelo POST..
     @PostMapping
@@ -83,6 +94,8 @@ public class TripController {
         return ResponseEntity.notFound().build();
     }
 
+    // PARTICIPANT
+
     @PostMapping("/{id}/invite ")
     //Estou deixando esse método aqui porque eu estou convidando um participante para uma viagem e não o contrário
     public ResponseEntity<ParticipantCreateResponse> inviteParticipant(@PathVariable UUID id, @RequestBody ParticipantRequestPayload payload) {
@@ -104,7 +117,60 @@ public class TripController {
 
     @GetMapping("/{id}/participants")
     public ResponseEntity<List<ParticipantData>> getAllParticipants(@PathVariable UUID id){
-            List<ParticipantData> participantsList = participantService.getAllParticipantsFromEvent(id);
+            List<ParticipantData> participantsList = this.participantService.getAllParticipantsFromEvent(id);
             return ResponseEntity.ok(participantsList);
     }
+
+    // ACTIVITIES
+
+    @PostMapping("/{id}/activities")
+    //Estou deixando esse método aqui porque eu estou convidando um participante para uma viagem e não o contrário
+    public ResponseEntity<ActivityResponse> registerAtivity(@PathVariable UUID id, @RequestBody ActivityRequestPayload payload) {
+        Optional<Trip> trip = this.repository.findById(id);
+
+        if (trip.isPresent()){
+            // preciso da viagem porque eu quero criar um novo participant para ela
+            Trip rawTrip = trip.get();
+
+            ActivityResponse activityResponse = this.activityService.registerActivity(payload, rawTrip);
+
+            return ResponseEntity.ok(activityResponse);
+        }
+        return ResponseEntity.notFound().build();
+
+    }
+
+    @GetMapping("/{id}/activities")
+    public ResponseEntity<List<ActivityData>> getAllActivities(@PathVariable UUID id){
+        List<ActivityData> activityDataList = this.activityService.getAllActivitiesFromId(id);
+        return ResponseEntity.ok(activityDataList);
+
+    }
+
+    // LINKS
+
+    @PostMapping("/{id}/links")
+    //Estou deixando esse método aqui porque eu estou convidando um participante para uma viagem e não o contrário
+    public ResponseEntity<LinkResponse> registerLink(@PathVariable UUID id, @RequestBody LinkRequestPayload payload) {
+        Optional<Trip> trip = this.repository.findById(id);
+
+        if (trip.isPresent()){
+            // preciso da viagem porque eu quero criar um novo participant para ela
+            Trip rawTrip = trip.get();
+
+            LinkResponse linkResponse = this.linkService.registerLink(payload, rawTrip);
+
+            return ResponseEntity.ok(linkResponse);
+        }
+        return ResponseEntity.notFound().build();
+
+    }
+
+    @GetMapping("/{id}/links")
+    public ResponseEntity<List<LinkData>> getAllLinks(@PathVariable UUID id){
+        List<LinkData> linksDataList = this.linkService.getAllLinksFromTrip(id);
+        return ResponseEntity.ok(linksDataList);
+
+    }
+
 }
